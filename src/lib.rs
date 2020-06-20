@@ -87,7 +87,6 @@ pub struct QueueReceiver<T> {
     out_queue: *mut QueueHead<T>,
 }
 
-unsafe impl<T> Sync for QueueReceiver<T> {}
 impl<T> QueueReceiver<T> {
     /// Pop an item from the queue. If the queue is
     /// empty, `None` is returned.

@@ -19,6 +19,7 @@ pub struct QueueSender<T> {
 
 impl<T> QueueSender<T> {
     /// Push the supplied element into the queue.
+    #[inline(always)]
     pub fn push(&self, element: T) {
         let mut in_queue = ptr::null_mut();
         let mut new = Box::into_raw(Box::new(QueueHead {
@@ -29,7 +30,7 @@ impl<T> QueueSender<T> {
         loop {
             match self
                 .in_queue
-                .compare_exchange(in_queue, new, Ordering::SeqCst, Ordering::SeqCst)
+                .compare_exchange(in_queue, new, Ordering::SeqCst, /*Ordering::SeqCst*/Ordering::Relaxed)
             {
                 Ok(_) => {
                     return;
@@ -87,19 +88,24 @@ pub struct QueueReceiver<T> {
     out_queue: *mut QueueHead<T>,
 }
 
+unsafe impl<T> Sync for QueueReceiver<T> {}
 impl<T> QueueReceiver<T> {
     /// Pop an item from the queue. If the queue is
     /// empty, `None` is returned.
+    #[inline(always)]
     pub fn pop(&mut self) -> Option<T> {
+        //let mut counter: usize = 0;
         if self.out_queue.is_null() {
             let mut head = ptr::null_mut();
 
             loop {
-                match self.in_queue.compare_exchange(
+                //match self.in_queue.compare_exchange(
+                match self.in_queue.compare_exchange_weak(
                     head,
                     ptr::null_mut(),
                     Ordering::SeqCst,
-                    Ordering::SeqCst,
+                    //Ordering::SeqCst,
+                    Ordering::Relaxed,
                 ) {
                     Ok(_) => {
                         while !head.is_null() {
@@ -123,6 +129,8 @@ impl<T> QueueReceiver<T> {
                     }
                 }
             }
+            //if counter % 3 == 0 { std::thread::yield_now() }
+            //counter += 1;
         }
 
         if self.out_queue.is_null() {
@@ -192,6 +200,8 @@ impl Queue {
     /// Senders may be cloned to allow multiple
     /// producers, but only a single receiver
     /// may exist.
+    ///
+    #[inline(always)]
     pub fn unbounded<T>() -> (QueueSender<T>, QueueReceiver<T>) {
         let in_queue = Arc::new(AtomicPtr::new(ptr::null_mut()));
 

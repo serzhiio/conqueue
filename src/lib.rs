@@ -78,7 +78,6 @@ impl<T> Drop for QueueSender<T> {
 }
 
 unsafe impl<T> Sync for QueueSender<T> {}
-
 unsafe impl<T> Send for QueueSender<T> {}
 
 /// A `QueueReceiver` is used to pop previously
@@ -190,6 +189,7 @@ impl<T> Drop for QueueReceiver<T> {
 }
 
 unsafe impl<T> Send for QueueReceiver<T> {}
+unsafe impl<T> Sync for QueueReceiver<T> {}
 
 pub struct Queue;
 
